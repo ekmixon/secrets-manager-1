@@ -17,6 +17,7 @@ jobs:
           command: |
             version=$(cat VERSION)
             tag="limebike/secrets-manager:${version}"
+            echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
             docker build -t "$tag" -t "limebike/secrets-manager:latest" .
             docker push "$tag"
   lint:
