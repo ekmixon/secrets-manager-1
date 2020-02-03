@@ -1,0 +1,8 @@
+*/package
+.DS_Store
+*__pycache__*
+.terraform
+*tfstate*
+secret.yml
+.vscode
+.coverage

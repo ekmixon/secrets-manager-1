@@ -1,0 +1,88 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: secrets-manager
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: secrets-manager
+subjects:
+- kind: ServiceAccount
+  name: secrets-manager
+roleRef:
+  kind: ClusterRole
+  name: secrets-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secrets-manager-config
+data:
+  config.yaml: |
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: secrets-manager
+  labels:
+    app: secrets-manager
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 10
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secrets-manager
+  template:
+    metadata:
+      labels:
+        app: secrets-manager
+    spec:
+      serviceAccountName: secrets-manager
+      containers:
+        - name: secrets-manager
+          image: limebike/secrets-manager:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENV
+              value: "production"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 60
+            timeoutSeconds: 60
+            failureThreshold: 1
+          resources:
+            limits:
+              cpu: 1500m
+              memory: 2000Mi
+            requests:
+              cpu: 1000m
+              memory: 1000Mi
+          volumeMounts:
+            - mountPath: /etc/secrets_manager/
+              name: secrets-manager-config
+      volumes:
+        - name: secrets-manager-config
+          configMap:
+            name: secrets-manager-config

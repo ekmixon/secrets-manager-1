@@ -1,0 +1,65 @@
+
+# Check https://circleci.com/docs/2.0/language-ruby/ for more details
+version: 2.1
+executors:
+  build_deploy:
+    docker:
+      - image: "circleci/python:3.7.4-stretch"
+jobs:
+  build_and_push_image:
+    executor: build_deploy
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build and Push Image
+          command: |
+            version=$(cat VERSION)
+            tag="limebike/secrets-manager:${version}"
+            docker build -t "$tag" -t "limebike/secrets-manager:latest" .
+            docker push "$tag"
+  lint:
+    executor: build_deploy
+    steps:
+      - checkout
+      - run:
+          name: Run Linter
+          command: |
+            pip install flake8 --user
+            flake8 ./app
+  test:
+    executor: build_deploy
+    steps:
+      - checkout
+      - run:
+          name: Run Tests
+          command: |
+            pipenv install
+            pipenv run python -m unittest discover
+  coverage:
+    executor: build_deploy
+    steps:
+      - checkout
+      - run:
+          name: Run Coverage
+          command: |
+            pipenv install --dev
+            pipenv run python -m coverage run -m unittest discover
+            pipenv run python -m coverage report
+workflows:
+  on_commit:
+    jobs:
+      - test
+      - lint
+      - coverage
+      - build_and_push_image:
+          context: prod
+          requires:
+            - lint
+            - test
+          filters:
+            branches:
+              only:
+                - master
+
