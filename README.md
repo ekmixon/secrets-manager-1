@@ -13,7 +13,7 @@ The green box is secrets manager. It pulls secrets from AWS Secrets Manager, con
 
 ## Installation
 ### Prerequisites
-Make sure the secrets manager pods has access to read AWS secrets manager. Pass in `AWS_SECRET_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` to the pod if needed.
+Make sure the secrets manager pods has access to read AWS secrets manager. The recommended use is the apply an **AWS role** to the kubernetes pod that gives it access, but it is also possible to pass in `AWS_SECRET_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` to the pod if needed.
 
 ### Default Installation
  **WARNING**, this will pull all secrets from AWS with names matching `<secret>/<name>` and apply them. Do with caution.
