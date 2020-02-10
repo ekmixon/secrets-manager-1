@@ -16,10 +16,10 @@ jobs:
           name: Build and Push Image
           command: |
             version=$(cat VERSION)
-            tag="limebike/secrets-manager:${version}"
             echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
-            docker build -t "$tag" -t "limebike/secrets-manager:latest" .
-            docker push "$tag"
+            docker build -t "limebike/secrets-manager:${version}" -t "limebike/secrets-manager:latest" .
+            docker push "limebike/secrets-manager:${version}"
+            docker push "limebike/secrets-manager:latest"
   lint:
     executor: build_deploy
     steps:
