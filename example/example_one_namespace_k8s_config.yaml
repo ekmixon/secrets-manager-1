@@ -25,6 +25,9 @@ metadata:
   name: secrets-manager-config
 data:
   config.yaml: |
+    config:
+      secret_manager_envs:
+        - name: default
 ---
 kind: Deployment
 apiVersion: apps/v1
