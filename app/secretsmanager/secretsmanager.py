@@ -17,9 +17,8 @@ from app.secretsmanager.aws_secret import AWSSecret, MalformedSecret
 
 def get_kube_secret(namespace, name):
     api = client.CoreV1Api()
-    query = "metadata.name=" + name
-    secrets = api.list_namespaced_secret(namespace, field_selector=query)
-    return secrets
+    query = f"metadata.name={name}"
+    return api.list_namespaced_secret(namespace, field_selector=query)
 
 
 def get_kube_secret_data(namespace, name):
@@ -31,29 +30,24 @@ def parse_query(data):
 
     secrets_data_dict_conversion = ast.literal_eval(data)
 
-    secret_data_dict_encoded = {}
-    for key, value in secrets_data_dict_conversion.items():
-        secret_data_dict_encoded[key] = base64.b64encode(
-            value.encode()).decode("utf-8")
-
-    return secret_data_dict_encoded
+    return {
+        key: base64.b64encode(value.encode()).decode("utf-8")
+        for key, value in secrets_data_dict_conversion.items()
+    }
 
 
 def get_k8s_secrets_config(secrets_name, namespace, data, modified_time):
-    secrets_config = {
+    return {
         "apiVersion": "v1",
         "kind": "Secret",
         "metadata": {
             "name": secrets_name,
             "namespace": namespace,
-            "labels": {
-                "aws_last_modified": modified_time
-            }
+            "labels": {"aws_last_modified": modified_time},
         },
         "type": "Opaque",
-        "data": data
+        "data": data,
     }
-    return secrets_config
 
 
 def apply_k8s_secrets(secrets_name, namespace, secrets_config):
@@ -80,10 +74,7 @@ def get_secret_manager_client():
 
 def describe_aws_secret(secret_name):
     client = get_secret_manager_client()
-    response = client.describe_secret(
-        SecretId=secret_name
-    )
-    return response
+    return client.describe_secret(SecretId=secret_name)
 
 
 def get_aws_secret(secret_name):
@@ -99,12 +90,9 @@ def get_aws_secret(secret_name):
         # Depending on whether the secret is a string or binary, one of these
         # fields will be populated.
         if 'SecretString' in get_secret_value_response:
-            secret = get_secret_value_response['SecretString']
-            return secret
+            return get_secret_value_response['SecretString']
         else:
-            decoded_binary_secret = base64.b64decode(
-                get_secret_value_response['SecretBinary'])
-            return decoded_binary_secret
+            return base64.b64decode(get_secret_value_response['SecretBinary'])
 
 
 def get_all_aws_secrets():
@@ -285,7 +273,7 @@ def run():
         config_logging["needs_update"] = needs_an_update
         current_app.logger.info(f"Checking {config_logging}")
 
-        if (needs_an_update):
+        if needs_an_update:
             # Get and parse aws secrets
             secret = get_aws_secret(aws_secret_manager_name)
 
@@ -306,14 +294,12 @@ def run():
             # Apply secrets to k8s
             apply_k8s_secrets(secret_name, namespace, secrets_config)
             # Backup secrets to s3
-            file_name = "{}-{}.yml".format(secret_name, env)
+            file_name = f"{secret_name}-{env}.yml"
             if Config.BACKUP_S3_BUCKET is not None:
                 backup_secrets(file_name, secrets_config)
 
             if (secrets_data != k8s_secret_data):
-                statsd.increment(
-                    'secretupdated.{}'.format(env), tags=[
-                        "secretname:{}".format(secret_name)])
+                statsd.increment(f'secretupdated.{env}', tags=[f"secretname:{secret_name}"])
     statsd.increment('Secrets_Updated')
 
 

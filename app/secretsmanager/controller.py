@@ -6,20 +6,18 @@ secretsmanager = Blueprint('secretsmanager', __name__)
 
 @secretsmanager.route('/ready')
 def ready():
-    response = Response(
+    return Response(
         response=json.dumps({"status": "ok"}),
         status=200,
-        mimetype='application/json'
+        mimetype='application/json',
     )
-    return response
 
 
 @secretsmanager.route('/run')
 def index():
     run()
-    response = Response(
+    return Response(
         response=json.dumps({"status": "ok"}),
         status=200,
-        mimetype='application/json'
+        mimetype='application/json',
     )
-    return response
